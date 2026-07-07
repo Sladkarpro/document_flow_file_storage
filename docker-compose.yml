@@ -14,16 +14,17 @@
 #   - MinIO S3 API (:9000)   — ВНУТРЕННИЙ (файлы клиенту отдаёт Go проксированием).
 #   - MinIO Console (:9001)  — только localhost (админка).
 #   - imgproxy (:8080)       — ВНУТРЕННИЙ (берёт из minio:9000).
-#   - nginx-кэш (:8082)      — ПУБЛИЧНАЯ дверь, его URL попадает в <img src>.
-#     браузер -> nginx(кэш) -> imgproxy -> MinIO
+#   - nginx-кэш (:80)        — внутренний сервис nginx_imgproxy.
+#     браузер -> основной nginx (/media/preview/) -> nginx_imgproxy -> imgproxy -> MinIO
 #
 # Volume'ы — в ./../ (рядом с этой папкой): ./../minio_data, ./../imgproxy_cache.
 # nginx -> build из ./docker_env/nginx/Dockerfile + config/ (зеркалит корень).
 #
 # Старт: см. README.md (создать .env, общую сеть и bucket — bucket создаётся
 # ОДИН РАЗ вручную, авто-init убран). Запуск:
-#   автономно:  docker compose up -d
-#   с ядром:    docker compose -f docker-compose.yml -f file_storage/docker-compose.yml up -d
+#   обычный запуск: docker compose up -d
+#   для прямой автономной проверки nginx_imgproxy можно временно раскомментировать
+#   проброс порта 8082 ниже.
 
 services:
   # --- Хранилище ---
@@ -73,7 +74,8 @@ services:
     networks:
       - shared
 
-  # nginx-кэш перед imgproxy — публичная дверь медиа-стека.
+  # nginx-кэш перед imgproxy. Наружу не публикуется: основной nginx проекта
+  # проксирует /media/preview/ в этот контейнер по общей сети.
   # Оформлен как основной nginx проекта: build из docker_env/nginx/Dockerfile
   # (база nginx:1.27.0-alpine-slim) + конфиг монтируется volume'ом.
   nginx_imgproxy:
@@ -85,9 +87,9 @@ services:
     volumes:
       - ./docker_env/nginx/config/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./../imgproxy_cache:/var/cache/nginx/imgproxy
-    ports:
-      # Публичная дверь. Этот адрес попадает в <img src>.
-      - "${IMGPROXY_CACHE_PORT:-8082}:80"
+    # ports:
+    #   # Публичная дверь закрыта. Проксирование идёт через основной Nginx (/media/preview/).
+    #   - "${IMGPROXY_CACHE_PORT:-8082}:80"
     networks:
       - shared
 

@@ -1,6 +1,18 @@
 # Файловое хранилище (MinIO + imgproxy + Nginx)
 
-Простая инструкция по развёртыванию S3-хранилища файлов и сервиса обработки изображений на новом сервере.
+Инструкция по развёртыванию S3-хранилища файлов и сервиса обработки изображений для `go_kanban_service`.
+
+Стек состоит из:
+- `minio` — S3-хранилище файлов;
+- `imgproxy` — ресайз изображений на лету;
+- `nginx_imgproxy` — nginx-кэш перед imgproxy.
+
+Обычный поток для превью:
+```text
+браузер -> основной nginx (/media/preview/) -> nginx_imgproxy -> imgproxy -> MinIO
+```
+
+`nginx_imgproxy` наружу не публикуется. Он доступен внутри общей Docker-сети `project-net`, а внешний маршрут `/media/preview/` проксирует основной nginx проекта.
 
 ---
 
@@ -35,6 +47,13 @@ docker network create project-net
 docker compose up -d
 ```
 
+После запуска `go_kanban_service` должен быть в той же Docker-сети `project-net` и использовать:
+```env
+MINIO_ENDPOINT=minio:9000
+MINIO_BUCKET_NAME=kanban
+IMGPROXY_BASE_URL=/media/preview
+```
+
 ## 4. Создание бакета (Обязательный шаг)
 
 При первом запуске сервер MinIO абсолютно пустой. Вам нужно создать стартовый бакет (папку для файлов), например, `kanban`.
@@ -54,9 +73,14 @@ docker run --rm --network project-net --entrypoint sh \
 docker compose ps
 ```
 
-Проверьте доступность кэширующего сервера:
+Проверьте логи или статус кэширующего сервера:
 ```bash
-curl -I http://localhost:8082/healthz
+docker compose logs nginx_imgproxy
+```
+
+Если запущен основной nginx проекта, healthcheck кэша доступен через него:
+```bash
+curl -I http://localhost/media/preview/healthz
 ```
 
 Для управления хранилищем через интерфейс используйте веб-админку MinIO, которая доступна на порту **9001** (доступна только локально, для удалённого доступа потребуется SSH-туннель).
@@ -66,8 +90,28 @@ curl -I http://localhost:8082/healthz
 ## Где хранятся данные?
 
 По умолчанию данные хранятся на уровень выше директории проекта (чтобы избежать случайного удаления вместе с проектом):
-- `../../minio_data/` — физические файлы бакетов
-- `../../imgproxy_cache/` — кэшированные миниатюры изображений
+- `../minio_data/` — физические файлы бакетов
+- `../imgproxy_cache/` — кэшированные миниатюры изображений
+
+Например, при расположении проекта в `/home/dev/don_stroy_mash/file_storage` фактические пути будут:
+- `/home/dev/don_stroy_mash/minio_data`
+- `/home/dev/don_stroy_mash/imgproxy_cache`
+
+## Автономная отладка без основного nginx
+
+По умолчанию порт `nginx_imgproxy` наружу закрыт, потому что превью должны идти через основной nginx проекта. Если нужно проверить imgproxy-кэш без основного nginx, временно раскомментируйте проброс порта в `docker-compose.yml`:
+
+```yaml
+ports:
+  - "${IMGPROXY_CACHE_PORT:-8082}:80"
+```
+
+После этого healthcheck будет доступен напрямую:
+```bash
+curl -I http://localhost:8082/healthz
+```
+
+Для обычного запуска с `go_kanban_service` это не требуется.
 
 ---
 

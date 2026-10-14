@@ -34,8 +34,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?задайте MINIO_ROOT_USER в .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?задайте MINIO_ROOT_PASSWORD в .env}
     volumes:
       - ./../minio_data:/data
     ports:
@@ -63,12 +63,17 @@ services:
       # --- Источник исходников: MinIO (S3) ---
       IMGPROXY_USE_S3: "1"
       IMGPROXY_S3_ENDPOINT: "http://minio:9000"
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?задайте MINIO_ROOT_USER в .env}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?задайте MINIO_ROOT_PASSWORD в .env}
       IMGPROXY_S3_REGION: ${MINIO_REGION:-us-east-1}
 
       IMGPROXY_BIND: ":8080"
       IMGPROXY_MAX_SRC_RESOLUTION: ${IMGPROXY_MAX_SRC_RESOLUTION:-50}
+      # Источники — только MinIO: без этого при выключенной подписи imgproxy ходит
+      # по любому http(s)-адресу, в том числе во внутреннюю сеть (FS-SEC-1).
+      IMGPROXY_ALLOWED_SOURCES: ${IMGPROXY_ALLOWED_SOURCES:-s3://}
+      # Предел размера исходника, байт (50 МБ = лимит загрузки kanban) (FS-SEC-3).
+      IMGPROXY_MAX_SRC_FILE_SIZE: ${IMGPROXY_MAX_SRC_FILE_SIZE:-52428800}
       IMGPROXY_LOG_LEVEL: ${IMGPROXY_LOG_LEVEL:-info}
     # Порт наружу НЕ публикуем — доступ только через nginx-кэш.
     networks:

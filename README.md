@@ -31,7 +31,7 @@ cp .env.example .env
 ```bash
 openssl rand -hex 32
 ```
-Впишите два сгенерированных значения в `.env` в параметры `IMGPROXY_KEY` и `IMGPROXY_SALT`. Установите параметр `IMGPROXY_ALLOW_UNSAFE_URL=0`.
+Впишите два сгенерированных значения в `.env` в параметры `IMGPROXY_KEY` и `IMGPROXY_SALT`. Те же значения задайте Symfony и kanban: они подписывают ссылки. После включения подписи очистите кэш в контейнере nginx-кэша (`/var/cache/nginx/imgproxy`), иначе старые неподписанные ответы будут отдаваться до 30 дней.
 
 ## 2. Создание Docker-сети
 

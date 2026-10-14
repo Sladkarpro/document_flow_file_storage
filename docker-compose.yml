@@ -56,8 +56,9 @@ services:
       # Сгенерировать: openssl rand -hex 32  (для каждого ключа)
       IMGPROXY_KEY: ${IMGPROXY_KEY:-}
       IMGPROXY_SALT: ${IMGPROXY_SALT:-}
-      # Если ключ/соль пустые — подпись отключена (ТОЛЬКО для локальной отладки).
-      IMGPROXY_ALLOW_UNSAFE_URL: ${IMGPROXY_ALLOW_UNSAFE_URL:-1}
+      # Пустые ключ/соль — imgproxy принимает любые ссылки, в том числе /unsafe/
+      # (только локальная отладка). С ключами ссылка без подписи получает 403;
+      # Symfony и kanban подписывают ссылки теми же IMGPROXY_KEY/IMGPROXY_SALT.
 
       # --- Источник исходников: MinIO (S3) ---
       IMGPROXY_USE_S3: "1"

@@ -2,7 +2,7 @@
 #
 # Это единый связанный стек (общий жизненный цикл): imgproxy читает исходники
 # из MinIO, nginx кэширует ответы imgproxy. Всё хранилище вынесено в папку
-# file_storage/. См. dev_docks/microservices/Readme_kanban_to_do.txt, 8.7-8.9.
+# document_flow_file_storage/. См. README.md в корне репозитория.
 #
 # Назначение:
 #   - MinIO   — единое S3-хранилище файлов. Канбан-сервис (Go) — первый
@@ -67,7 +67,6 @@ services:
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       IMGPROXY_S3_REGION: ${MINIO_REGION:-us-east-1}
 
-      # --- Прочее ---
       IMGPROXY_BIND: ":8080"
       IMGPROXY_MAX_SRC_RESOLUTION: ${IMGPROXY_MAX_SRC_RESOLUTION:-50}
       IMGPROXY_LOG_LEVEL: ${IMGPROXY_LOG_LEVEL:-info}
